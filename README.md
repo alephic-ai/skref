@@ -181,6 +181,7 @@ All test fixtures live under [`tests/fixtures/`](tests/fixtures).
 - `hello-world` — the minimal valid skill.
 - `pdf-processing` — a richer skill bundling a script and a reference doc.
 - `git-commit-helper` — uses the experimental `allowed-tools` field.
+- `social-post-approval` - turns TweetClaw exports into source notes for approval-gated social publishing workflows.
 - `перевод` — demonstrates i18n (non-Latin) skill names.
 
 [`tests/fixtures/claude-skills/`](tests/fixtures/claude-skills) contains skills that use Claude Code's extra frontmatter fields, valid only with `--allow-claude-fields`:
