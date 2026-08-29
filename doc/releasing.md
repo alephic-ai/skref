@@ -40,9 +40,18 @@ The `vX.Y.Z` tag fires two workflows:
 - [`publish-crate.yml`](../.github/workflows/publish-crate.yml) — publishes to crates.io
   using **Trusted Publishing** (OIDC, no stored token).
 - [`release.yml`](../.github/workflows/release.yml) — `dist` (cargo-dist) builds the
-  prebuilt binaries and the GitHub Release.
+  prebuilt binaries and the GitHub Release, then calls
+  [`homebrew.yml`](../.github/workflows/homebrew.yml) to regenerate
+  `Formula/skref.rb` in [alephic-ai/homebrew-tap](https://github.com/alephic-ai/homebrew-tap)
+  from this release's tarballs and their `.sha256` sidecars, so
+  `brew install alephic-ai/tap/skref` tracks every release. The formula is
+  generated, never hand-edited: fix a bad one in `homebrew.yml`, not in the tap.
 
 Both trigger on tags matching `**[0-9]+.[0-9]+.[0-9]+*`.
+
+`homebrew.yml` is wired in as a `dist` custom publish job (`publish-jobs = ["./homebrew"]`
+in `dist-workspace.toml`); after changing that file, re-run `dist generate` to refresh
+`release.yml`.
 
 ## 3. Move the `v1` major tag
 

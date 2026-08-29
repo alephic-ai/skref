@@ -10,6 +10,22 @@ A fast Rust CLI for working with [Agent Skills](https://github.com/agentskills/a
 
 ## Install
 
+### With Homebrew
+
+On macOS or Linux:
+
+```bash
+brew install alephic-ai/tap/skref
+```
+
+### With ubi
+
+On macOS, Linux, or Windows, with [ubi](https://github.com/houseabsolute/ubi):
+
+```bash
+ubi --project alephic-ai/skref --in ~/.local/bin
+```
+
 ### With Cargo
 
 ```bash
@@ -20,7 +36,7 @@ cargo install skref
 
 Prefer not to compile? Every [release](https://github.com/alephic-ai/skref/releases) ships
 prebuilt binaries for Linux (x86_64, aarch64), macOS (Intel and Apple Silicon), and Windows
-(x86_64). Install the latest with the one-line installer:
+(x86_64, aarch64). Install the latest with the one-line installer:
 
 ```bash
 # macOS / Linux

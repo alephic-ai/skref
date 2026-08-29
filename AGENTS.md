@@ -25,7 +25,9 @@ cargo test
 
 ## Releases
 
-`dist` (cargo-dist) builds the prebuilt binaries. **Tag releases as `vX.Y.Z`** (matching
+`dist` (cargo-dist) builds the prebuilt binaries and, via the `homebrew.yml` custom
+publish job, regenerates `Formula/skref.rb` in `alephic-ai/homebrew-tap`.
+**Tag releases as `vX.Y.Z`** (matching
 `Cargo.toml`'s version). The `action.yml` install step downloads
 `releases/download/v$VERSION/…`, so a tag without the `v` prefix leaves the binaries
 unreachable and forces the action onto its slower source-build fallback.

@@ -1,0 +1,88 @@
+name: Homebrew
+
+# A dist custom publish job (wired in via `publish-jobs` in
+# dist-workspace.toml): dist calls it after the GitHub Release exists, so the
+# tarballs and their `.sha256` sidecars are already downloadable.
+on:
+  workflow_call:
+    inputs:
+      plan:
+        required: true
+        type: string
+
+jobs:
+  homebrew:
+    name: Update Homebrew tap
+    runs-on: ubuntu-latest
+    steps:
+      # The bot is a bypass actor on the org rulesets that gate every default
+      # branch; github.token would be rejected pushing to the tap's main.
+      - name: Generate Alephic Bot token
+        uses: actions/create-github-app-token@v2
+        id: app-token
+        with:
+          app-id: ${{ vars.ALEPHIC_BOT_APP_ID }}
+          private-key: ${{ secrets.ALEPHIC_BOT_SECRET }}
+          repositories: homebrew-tap
+          permission-contents: write
+      - uses: actions/checkout@v6
+        with:
+          repository: alephic-ai/homebrew-tap
+          token: ${{ steps.app-token.outputs.token }}
+      # The formula is generated, never hand-edited: the release tarballs and
+      # their .sha256 sidecars are all a binary formula needs. Fix a bad one
+      # here, not in the tap.
+      - env:
+          TAG: ${{ fromJson(inputs.plan).announcement_tag }}
+        run: |
+          set -euo pipefail
+          base="https://github.com/alephic-ai/skref/releases/download/${TAG}"
+          sha() { curl -fsSL "${base}/skref-$1.tar.xz.sha256" | cut -d' ' -f1; }
+          mkdir -p Formula
+          # `brew style` rejects a desc opening with an article or with the
+          # formula name, so this is not the crate's own description.
+          cat > Formula/skref.rb <<EOF
+          class Skref < Formula
+            desc "Validate, inspect, and prompt-render Agent Skills SKILL.md files"
+            homepage "https://github.com/alephic-ai/skref"
+            version "${TAG#v}"
+            license "Apache-2.0"
+
+            on_macos do
+              on_arm do
+                url "${base}/skref-aarch64-apple-darwin.tar.xz"
+                sha256 "$(sha aarch64-apple-darwin)"
+              end
+              on_intel do
+                url "${base}/skref-x86_64-apple-darwin.tar.xz"
+                sha256 "$(sha x86_64-apple-darwin)"
+              end
+            end
+
+            on_linux do
+              on_arm do
+                url "${base}/skref-aarch64-unknown-linux-gnu.tar.xz"
+                sha256 "$(sha aarch64-unknown-linux-gnu)"
+              end
+              on_intel do
+                url "${base}/skref-x86_64-unknown-linux-gnu.tar.xz"
+                sha256 "$(sha x86_64-unknown-linux-gnu)"
+              end
+            end
+
+            def install
+              bin.install "skref"
+            end
+
+            test do
+              assert_match version.to_s, shell_output("#{bin}/skref --version")
+            end
+          end
+          EOF
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/skref.rb
+          git diff --quiet --cached || git commit -m "skref ${TAG#v}"
+          # Another tool releasing at once pushes here too; concurrency groups
+          # are per-repo, so the loser rebases instead of failing the release.
+          git push || { git pull --rebase && git push; }
