@@ -65,6 +65,7 @@ runs:
           "macOS X64")    TRIPLE=x86_64-apple-darwin;       EXT=tar.xz; BIN=skref ;;
           "macOS ARM64")  TRIPLE=aarch64-apple-darwin;      EXT=tar.xz; BIN=skref ;;
           "Windows X64")  TRIPLE=x86_64-pc-windows-msvc;    EXT=zip;    BIN=skref.exe ;;
+          "Windows ARM64") TRIPLE=aarch64-pc-windows-msvc;  EXT=zip;    BIN=skref.exe ;;
           *)              TRIPLE="" ;;
         esac
 

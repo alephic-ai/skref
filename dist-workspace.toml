@@ -9,11 +9,20 @@ cargo-dist-version = "0.32.0"
 ci = "github"
 # The installers to generate for each app
 installers = ["shell", "powershell"]
+# Regenerates Formula/skref.rb in alephic-ai/homebrew-tap. Custom job (not
+# dist's built-in "homebrew" installer) because pushing to the tap's protected
+# main needs the alephic-bot app token, not a PAT.
+publish-jobs = ["./homebrew"]
 # Target platforms to build apps for (Rust target-triple syntax)
-targets = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "x86_64-apple-darwin", "x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc"]
+targets = ["aarch64-apple-darwin", "aarch64-pc-windows-msvc", "aarch64-unknown-linux-gnu", "x86_64-apple-darwin", "x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc"]
 # Path that installers should place binaries in
 install-path = "CARGO_HOME"
 # Where to host releases
 hosting = "github"
 # Whether to install an updater program
 install-updater = false
+
+# Build Windows ARM natively; dist's default is a cargo-xwin cross-compile from
+# a Linux container, which pulls the MS SDK on every release.
+[dist.github-custom-runners]
+aarch64-pc-windows-msvc = "windows-11-arm"
