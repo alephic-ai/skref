@@ -24,6 +24,10 @@ install-path = "CARGO_HOME"
 hosting = "github"
 # Whether to install an updater program
 install-updater = false
+# Runner images lag behind Rust releases (macos-15 shipped 1.98 when
+# rust-version was 1.100), and dist builds with whatever is installed. Update
+# to the latest stable on every build runner, matching the MSRV policy.
+rust-toolchain-version = "stable"
 
 # Build Windows ARM natively; dist's default is a cargo-xwin cross-compile from
 # a Linux container, which pulls the MS SDK on every release.
