@@ -1,0 +1,77 @@
+name: Tag release
+
+# Turns a merged version bump into a release: whenever main's Cargo.toml
+# version has no matching `vX.Y.Z` tag, tag the pushed commit. That tag fires
+# release.yml (binaries, GitHub Release, Homebrew, moving `vN` tag) and
+# publish-crate.yml (crates.io). Pushes that don't change the version find the
+# tag already there and do nothing.
+#
+# The tag is pushed with the Alephic Bot app token, not github.token: a tag
+# pushed by github.token does not trigger other workflows, so nothing would
+# publish.
+on:
+  push:
+    branches: [main]
+  # Retry a failed run, or tag main's current version after the fact.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Two quick pushes to main must not race to create the same tag.
+concurrency:
+  group: tag-release
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    name: Tag vX.Y.Z from Cargo.toml
+    # A manual run from another branch must not release unmerged code.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Read version and check for its tag
+        id: version
+        run: |
+          set -euo pipefail
+          # Anchored on `=` like action.yml, so only the package version matches.
+          version="$(grep -m1 '^version[[:space:]]*=' Cargo.toml | sed -E 's/.*"([^"]+)".*/\1/')"
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+            echo "::error::Could not read a semver version from Cargo.toml (got '$version')."
+            exit 1
+          fi
+          tag="v$version"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if git ls-remote --exit-code --tags origin "refs/tags/$tag" > /dev/null; then
+            echo "$tag already exists; nothing to release."
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "$tag does not exist yet; tagging ${GITHUB_SHA}."
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Generate Alephic Bot token
+        if: steps.version.outputs.exists == 'false'
+        uses: actions/create-github-app-token@v3
+        id: app-token
+        with:
+          client-id: ${{ vars.ALEPHIC_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.ALEPHIC_BOT_SECRET }}
+          repositories: skref
+          permission-contents: write
+
+      - name: Push tag
+        if: steps.version.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+          # Lightweight tag on the pushed commit, like the hand-made ones.
+          gh api "repos/${GITHUB_REPOSITORY}/git/refs" \
+            -f ref="refs/tags/${TAG}" -f sha="${GITHUB_SHA}" > /dev/null
+          echo "::notice::Tagged ${GITHUB_SHA} as ${TAG}; release.yml and publish-crate.yml take it from here."

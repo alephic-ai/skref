@@ -33,15 +33,15 @@ CARGO_BUILD_WARNINGS=deny cargo test
 
 ## Releases
 
-`dist` (cargo-dist) builds the prebuilt binaries and, via the `homebrew.yml` custom
-publish job, regenerates `Formula/skref.rb` in `alephic-ai/homebrew-tap`.
-**Tag releases as `vX.Y.Z`** (matching
-`Cargo.toml`'s version). The `action.yml` install step downloads
-`releases/download/v$VERSION/…`, so a tag without the `v` prefix leaves the binaries
-unreachable and forces the action onto its slower source-build fallback.
+A release is a merged PR that bumps `Cargo.toml`'s version. Don't tag by hand:
+`tag-release.yml` tags the merge commit `vX.Y.Z`. That tag publishes to crates.io,
+and `dist` (cargo-dist) builds the binaries and GitHub Release, regenerates
+`Formula/skref.rb` in `alephic-ai/homebrew-tap` (`homebrew.yml`), and moves the `v1`
+tag (`move-major-tag.yml`). The `v` prefix matters: `action.yml` downloads
+`releases/download/v$VERSION/…`.
 
-See [`doc/releasing.md`](doc/releasing.md) for the full step-by-step release process
-(version-bump PR, autopublish on tag, and moving the `v1` tag).
+See [`doc/releasing.md`](doc/releasing.md) for the details and how to recover from a
+failed run.
 
 ## Fidelity notes
 
