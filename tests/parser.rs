@@ -1,5 +1,7 @@
 //! Tests for the parser module — ported from `tests/test_parser.py`.
 
+use std::assert_matches;
+
 use skref::errors::SkillError;
 use skref::parser::{find_skill_md, parse_frontmatter, read_properties};
 use std::fs;
@@ -21,7 +23,7 @@ fn valid_frontmatter() {
 #[test]
 fn missing_frontmatter() {
     let err = parse_frontmatter("# No frontmatter here").unwrap_err();
-    assert!(matches!(err, SkillError::Parse(_)));
+    assert_matches!(err, SkillError::Parse(_));
     assert!(err.to_string().contains("must start with YAML frontmatter"));
 }
 
@@ -93,7 +95,7 @@ fn claude_fields_ignored_by_default() {
     )
     .unwrap();
     let props = read_properties(&skill_dir, false).unwrap();
-    assert!(props.claude.is_empty());
+    assert_eq!(props.claude, []);
     assert!(props.to_dict().get("model").is_none());
 }
 
@@ -148,7 +150,7 @@ fn missing_name() {
     )
     .unwrap();
     let err = read_properties(&skill_dir, false).unwrap_err();
-    assert!(matches!(err, SkillError::Validation { .. }));
+    assert_matches!(err, SkillError::Validation { .. });
     assert!(err.to_string().contains("Missing required field") && err.to_string().contains("name"));
 }
 

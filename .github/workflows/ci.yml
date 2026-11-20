@@ -11,6 +11,8 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
+  # Fail any cargo command (clippy, test, Cargo's own lints) on lint warnings.
+  CARGO_BUILD_WARNINGS: deny
 
 jobs:
   test:
@@ -35,7 +37,7 @@ jobs:
         run: cargo fmt --all -- --check
 
       - name: Clippy
-        run: cargo clippy --all-targets -- -D warnings
+        run: cargo clippy --all-targets
 
       - name: Test
         run: cargo test --all

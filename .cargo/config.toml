@@ -1,0 +1,5 @@
+# Dependency cooldown (Rust 1.100+): the resolver ignores crate versions
+# published less than a week ago unless they're already in Cargo.lock, so a
+# freshly compromised release can't slip in through `cargo update`.
+[registry]
+global-min-publish-age = "7 days"

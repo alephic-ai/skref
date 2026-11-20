@@ -1,5 +1,7 @@
 //! Skill validation logic.
 
+use std::collections::BTreeSet;
+use std::fmt;
 use std::path::Path;
 
 use unicode_normalization::UnicodeNormalization;
@@ -27,15 +29,11 @@ fn char_len(s: &str) -> usize {
 /// Skill names support i18n characters (Unicode letters) plus hyphens. Names
 /// must be lowercase and cannot start or end with a hyphen.
 fn validate_name(name: &FmValue, skill_dir: Option<&Path>) -> Vec<String> {
-    let mut errors = Vec::new();
-
-    let raw = match name.as_str() {
-        Some(s) if !s.trim().is_empty() => s,
-        _ => {
-            errors.push("Field 'name' must be a non-empty string".to_string());
-            return errors;
-        }
+    let Some(raw) = name.as_str().filter(|s| !s.trim().is_empty()) else {
+        return vec!["Field 'name' must be a non-empty string".to_string()];
     };
+
+    let mut errors = Vec::new();
 
     let name = nfkc(raw.trim());
 
@@ -68,8 +66,7 @@ fn validate_name(name: &FmValue, skill_dir: Option<&Path>) -> Vec<String> {
     if let Some(dir) = skill_dir {
         let dir_name_raw = dir
             .file_name()
-            .map(|n| n.to_string_lossy().into_owned())
-            .unwrap_or_default();
+            .map_or_default(|n| n.to_string_lossy().into_owned());
         let dir_name = nfkc(&dir_name_raw);
         if dir_name != name {
             errors.push(format!(
@@ -83,15 +80,11 @@ fn validate_name(name: &FmValue, skill_dir: Option<&Path>) -> Vec<String> {
 
 /// Validate description format.
 fn validate_description(description: &FmValue) -> Vec<String> {
-    let mut errors = Vec::new();
-
-    let desc = match description.as_str() {
-        Some(s) if !s.trim().is_empty() => s,
-        _ => {
-            errors.push("Field 'description' must be a non-empty string".to_string());
-            return errors;
-        }
+    let Some(desc) = description.as_str().filter(|s| !s.trim().is_empty()) else {
+        return vec!["Field 'description' must be a non-empty string".to_string()];
     };
+
+    let mut errors = Vec::new();
 
     if char_len(desc) > MAX_DESCRIPTION_LENGTH {
         errors.push(format!(
@@ -105,15 +98,11 @@ fn validate_description(description: &FmValue) -> Vec<String> {
 
 /// Validate compatibility format.
 fn validate_compatibility(compatibility: &FmValue) -> Vec<String> {
-    let mut errors = Vec::new();
-
-    let compat = match compatibility.as_str() {
-        Some(s) => s,
-        None => {
-            errors.push("Field 'compatibility' must be a string".to_string());
-            return errors;
-        }
+    let Some(compat) = compatibility.as_str() else {
+        return vec!["Field 'compatibility' must be a string".to_string()];
     };
+
+    let mut errors = Vec::new();
 
     if char_len(compat) > MAX_COMPATIBILITY_LENGTH {
         errors.push(format!(
@@ -130,37 +119,37 @@ fn validate_compatibility(compatibility: &FmValue) -> Vec<String> {
 /// When `allow_claude_fields` is set, the Claude Code [`CLAUDE_FIELDS`] join the
 /// base [`ALLOWED_FIELDS`] for both the membership check and the error message.
 fn validate_metadata_fields(metadata: &Frontmatter, allow_claude_fields: bool) -> Vec<String> {
-    let mut errors = Vec::new();
-
-    let allowed_fields: Vec<&str> = if allow_claude_fields {
-        ALLOWED_FIELDS
-            .iter()
-            .chain(CLAUDE_FIELDS.iter())
-            .copied()
-            .collect()
-    } else {
-        ALLOWED_FIELDS.to_vec()
-    };
-
-    let allowed: std::collections::BTreeSet<String> =
-        allowed_fields.iter().map(|s| s.to_string()).collect();
-    let extra: Vec<String> = metadata.keys().difference(&allowed).cloned().collect();
-
-    if !extra.is_empty() {
-        // `extra` is already sorted (BTreeSet difference yields sorted order).
-        let allowed_repr: Vec<String> = {
-            let mut v = allowed_fields.clone();
-            v.sort_unstable();
-            v.iter().map(|s| format!("'{s}'")).collect()
-        };
-        errors.push(format!(
-            "Unexpected fields in frontmatter: {}. Only [{}] are allowed.",
-            extra.join(", "),
-            allowed_repr.join(", ")
-        ));
+    let mut allowed = BTreeSet::from(ALLOWED_FIELDS);
+    if allow_claude_fields {
+        allowed.extend(CLAUDE_FIELDS);
     }
 
-    errors
+    // Both sides iterate in sorted order (BTreeSet), matching Python's
+    // `sorted(extra_fields)` / `sorted(ALLOWED_FIELDS)` in the message.
+    let keys = metadata.keys();
+    let extra: Vec<&str> = keys
+        .iter()
+        .map(String::as_str)
+        .filter(|k| !allowed.contains(k))
+        .collect();
+
+    if extra.is_empty() {
+        return Vec::new();
+    }
+
+    let allowed_repr = fmt::from_fn(|f| {
+        for (i, field) in allowed.iter().enumerate() {
+            if i > 0 {
+                f.write_str(", ")?;
+            }
+            write!(f, "'{field}'")?;
+        }
+        Ok(())
+    });
+    vec![format!(
+        "Unexpected fields in frontmatter: {}. Only [{allowed_repr}] are allowed.",
+        extra.join(", "),
+    )]
 }
 
 /// Validate parsed skill metadata.
@@ -211,9 +200,8 @@ pub fn validate(skill_dir: &Path, allow_claude_fields: bool) -> Vec<String> {
         return vec![format!("Not a directory: {}", skill_dir.display())];
     }
 
-    let skill_md = match find_skill_md(skill_dir) {
-        Some(p) => p,
-        None => return vec!["Missing required file: SKILL.md".to_string()],
+    let Some(skill_md) = find_skill_md(skill_dir) else {
+        return vec!["Missing required file: SKILL.md".to_string()];
     };
 
     let content = match std::fs::read_to_string(&skill_md) {

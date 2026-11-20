@@ -2,12 +2,11 @@
 name = "skref"
 version = "1.2.1"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.100"
 description = "Reference implementation of the Agent Skills tooling: validate, read-properties, and to-prompt for SKILL.md skills"
 license = "Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/alephic-ai/skref"
-homepage = "https://github.com/alephic-ai/skref"
 keywords = ["agent", "skills", "skill", "cli", "validation"]
 categories = ["command-line-utilities", "development-tools"]
 documentation = "https://docs.rs/skref"
@@ -22,13 +21,31 @@ name = "skref"
 path = "src/main.rs"
 
 [dependencies]
-clap = { version = "4", features = ["derive"] }
-serde_json = { version = "1", features = ["preserve_order"] }
-serde_yaml = "0.9"
-unicode-normalization = "0.1"
+clap = { version = "4.6", features = ["derive"] }
+serde_json = { version = "1.0.154", features = ["preserve_order"] }
+# Maintained successor of the deprecated `serde_yaml` (same API, YAML org).
+yaml_serde = "0.10.7"
+unicode-normalization = "0.1.26"
 
 [dev-dependencies]
-tempfile = "3"
+tempfile = "3.27"
+
+[lints.rust]
+unsafe_code = "forbid"
+unused_qualifications = "warn"
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+# A ported library mirrors Python names/docs; these pedantic lints add noise.
+module_name_repetitions = "allow"
+must_use_candidate = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+
+# Cargo's own lints (stable since Rust 1.100).
+[lints.cargo]
+unused_dependencies = "deny"
+redundant_homepage = "deny"
 
 # The profile that 'dist' will build with
 [profile.dist]

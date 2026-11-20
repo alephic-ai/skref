@@ -7,7 +7,7 @@ project.
 ## Getting started
 
 `skref` is a standard Cargo project. You need a recent stable Rust toolchain
-(edition 2024, Rust 1.85+):
+(edition 2024, Rust 1.100+):
 
 ```bash
 rustup update stable
@@ -23,12 +23,12 @@ opening a pull request:
 
 ```bash
 cargo fmt --all
-cargo clippy --all-targets -- -D warnings
-cargo test --all
+CARGO_BUILD_WARNINGS=deny cargo clippy --all-targets
+CARGO_BUILD_WARNINGS=deny cargo test --all
 ```
 
 - **Formatting** is enforced (`cargo fmt --all -- --check` in CI).
-- **Clippy** runs with `-D warnings` — warnings fail the build.
+- **Clippy** runs with `CARGO_BUILD_WARNINGS=deny` (pedantic, per `[lints]` in `Cargo.toml`) — warnings fail the build.
 - **Tests** must pass, including the doctests in `src/lib.rs`.
 
 ## Fidelity to the reference implementation

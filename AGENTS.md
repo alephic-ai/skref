@@ -10,7 +10,7 @@
 - `src/validator.rs` — `validate` / `validate_metadata` and the field rules.
 - `src/prompt.rs` — `to_prompt` (`<available_skills>` XML).
 - `src/models.rs` — `SkillProperties` + JSON output.
-- `src/yaml.rs` — frontmatter value model. Mirrors `strictyaml`: every scalar is coerced to a string.
+- `src/yaml.rs` — frontmatter value model (parsed with `yaml_serde`, the maintained `serde_yaml` successor). Mirrors `strictyaml`: every scalar is coerced to a string.
 - `src/errors.rs` — `SkillError` (Parse / Validation).
 - `tests/` — `parser.rs`, `prompt.rs`, `validator.rs` are 1:1 ports of the Python tests; `sample_skills.rs` exercises the on-disk fixtures.
 - `tests/fixtures/` — `sample-skills/` (base-spec valid), `invalid-skills/` (intentionally broken), `claude-skills/` (valid only with `--allow-claude-fields`; `claude-everything` uses every supported field).
@@ -19,9 +19,17 @@
 
 ```bash
 cargo fmt --all
-cargo clippy --all-targets -- -D warnings
-cargo test
+CARGO_BUILD_WARNINGS=deny cargo clippy --all-targets
+CARGO_BUILD_WARNINGS=deny cargo test
 ```
+
+- MSRV is the latest stable Rust (`rust-version` in `Cargo.toml`); feel free to use
+  any stable language/std feature.
+- Lint policy lives in `Cargo.toml`'s `[lints]` table (rustc, clippy pedantic, and
+  Cargo's own lints such as `unused_dependencies`).
+- `.cargo/config.toml` sets a 7-day dependency cooldown
+  (`registry.global-min-publish-age`): `cargo update` ignores versions published in
+  the last week unless they are already in `Cargo.lock`.
 
 ## Releases
 

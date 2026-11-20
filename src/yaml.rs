@@ -2,7 +2,7 @@
 //!
 //! The reference library parses frontmatter with `strictyaml`, whose default
 //! schema treats every scalar as a string. We reproduce that behaviour here:
-//! after parsing with `serde_yaml`, every scalar leaf is coerced to its
+//! after parsing with `yaml_serde`, every scalar leaf is coerced to its
 //! Python-`str()`-equivalent string form, while mappings and sequences keep
 //! their structure. Top-level frontmatter is always a mapping.
 
@@ -72,36 +72,27 @@ impl Frontmatter {
     }
 }
 
-/// Convert a `serde_yaml` scalar to its Python `str()`-equivalent string.
-fn scalar_to_string(value: &serde_yaml::Value) -> Option<String> {
-    use serde_yaml::Value;
+/// Convert a `yaml_serde` scalar to its Python `str()`-equivalent string.
+fn scalar_to_string(value: &yaml_serde::Value) -> Option<String> {
+    use yaml_serde::Value;
     match value {
         Value::Null => Some("None".to_string()),
-        Value::Bool(b) => Some(if *b {
-            "True".to_string()
-        } else {
-            "False".to_string()
-        }),
+        Value::Bool(true) => Some("True".to_string()),
+        Value::Bool(false) => Some("False".to_string()),
         Value::String(s) => Some(s.clone()),
-        Value::Number(n) => {
-            if let Some(i) = n.as_i64() {
-                Some(i.to_string())
-            } else if let Some(u) = n.as_u64() {
-                Some(u.to_string())
-            } else {
-                // Rust's Debug formatting renders 1.0 as "1.0", matching
-                // Python's str(1.0); Display would render "1".
-                n.as_f64().map(|f| format!("{f:?}"))
-            }
-        }
+        Value::Number(n) if let Some(i) = n.as_i64() => Some(i.to_string()),
+        Value::Number(n) if let Some(u) = n.as_u64() => Some(u.to_string()),
+        // Rust's Debug formatting renders 1.0 as "1.0", matching Python's
+        // str(1.0); Display would render "1".
+        Value::Number(n) => n.as_f64().map(|f| format!("{f:?}")),
         _ => None,
     }
 }
 
-/// Recursively convert a parsed `serde_yaml::Value` into an [`FmValue`],
+/// Recursively convert a parsed `yaml_serde::Value` into an [`FmValue`],
 /// coercing every scalar to a string.
-fn convert(value: &serde_yaml::Value) -> FmValue {
-    use serde_yaml::Value;
+fn convert(value: &yaml_serde::Value) -> FmValue {
+    use yaml_serde::Value;
     match value {
         Value::Sequence(items) => FmValue::Seq(items.iter().map(convert).collect()),
         Value::Mapping(map) => {
@@ -122,8 +113,8 @@ fn convert(value: &serde_yaml::Value) -> FmValue {
 /// Returns `Ok(None)` when the document is valid YAML but not a mapping (the
 /// caller turns that into the "must be a YAML mapping" parse error). Returns
 /// `Err` when the YAML itself is malformed.
-pub fn parse_mapping(frontmatter: &str) -> std::result::Result<Option<Frontmatter>, String> {
-    let value: serde_yaml::Value = serde_yaml::from_str(frontmatter).map_err(|e| e.to_string())?;
+pub fn parse_mapping(frontmatter: &str) -> Result<Option<Frontmatter>, String> {
+    let value: yaml_serde::Value = yaml_serde::from_str(frontmatter).map_err(|e| e.to_string())?;
 
     match convert(&value) {
         FmValue::Map(entries) => Ok(Some(Frontmatter { entries })),

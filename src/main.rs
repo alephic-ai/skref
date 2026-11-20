@@ -1,5 +1,9 @@
 //! CLI for the `skref` library — a Rust port of `skills-ref`.
 
+// clap renders `///` doc comments verbatim as `--help` text, so backticks
+// would show up literally in the CLI output.
+#![allow(clippy::doc_markdown)]
+
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
@@ -55,17 +59,16 @@ fn is_skill_md_file(path: &Path) -> bool {
     path.is_file()
         && path
             .file_name()
-            .map(|n| n.to_string_lossy().to_lowercase() == "skill.md")
-            .unwrap_or(false)
+            .is_some_and(|n| n.to_string_lossy().to_lowercase() == "skill.md")
 }
 
 /// If `path` is a SKILL.md file, return its parent directory; otherwise return
 /// `path` unchanged.
 fn resolve_skill_path(path: &Path) -> PathBuf {
-    if is_skill_md_file(path) {
-        path.parent()
-            .map(Path::to_path_buf)
-            .unwrap_or_else(|| path.to_path_buf())
+    if is_skill_md_file(path)
+        && let Some(parent) = path.parent()
+    {
+        parent.to_path_buf()
     } else {
         path.to_path_buf()
     }
