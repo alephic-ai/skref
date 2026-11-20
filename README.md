@@ -214,7 +214,7 @@ Discover more skills to try at [skills.sh](https://www.skills.sh/).
 ```bash
 cargo test          # unit + integration tests (ported from skills-ref + samples)
 cargo fmt --all
-cargo clippy --all-targets -- -D warnings
+CARGO_BUILD_WARNINGS=deny cargo clippy --all-targets
 ```
 
 ## License

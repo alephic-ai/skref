@@ -47,8 +47,8 @@ fn valid_samples_validate_cleanly() {
 
         // Properties should be readable and well-formed.
         let props = read_properties(&dir, false).expect("read_properties succeeds");
-        assert!(!props.name.is_empty());
-        assert!(!props.description.is_empty());
+        assert_ne!(props.name, "");
+        assert_ne!(props.description, "");
     }
 }
 
@@ -142,5 +142,5 @@ fn claude_everything_skill_uses_every_field() {
     assert!(props.license.is_some());
     assert!(props.allowed_tools.is_some());
     assert!(props.compatibility.is_some());
-    assert!(!props.metadata.is_empty());
+    assert_ne!(props.metadata, []);
 }

@@ -38,14 +38,12 @@ pub fn parse_frontmatter(content: &str) -> Result<(Frontmatter, String)> {
 
     // Equivalent to Python's content.split("---", 2): at most three pieces.
     let parts: Vec<&str> = content.splitn(3, "---").collect();
-    if parts.len() < 3 {
+    let [_, frontmatter_str, body] = parts[..] else {
         return Err(SkillError::parse(
             "SKILL.md frontmatter not properly closed with ---",
         ));
-    }
-
-    let frontmatter_str = parts[1];
-    let body = parts[2].trim().to_string();
+    };
+    let body = body.trim().to_string();
 
     match parse_mapping(frontmatter_str) {
         Ok(Some(frontmatter)) => Ok((frontmatter, body)),
