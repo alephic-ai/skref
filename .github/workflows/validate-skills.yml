@@ -22,7 +22,7 @@ jobs:
     name: Validate sample skills (should pass)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Validate valid sample skills
         uses: ./
@@ -36,7 +36,7 @@ jobs:
     name: Validate Claude-specific skills (needs --allow-claude-fields)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Validate Claude skills with allow-claude-fields
         uses: ./
@@ -50,7 +50,7 @@ jobs:
     name: Detect invalid skills (report only)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Report on intentionally-invalid skills
         uses: ./
