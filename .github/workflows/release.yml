@@ -309,3 +309,12 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
+
+  custom-move-major-tag:
+    needs:
+      - plan
+      - announce
+    uses: $/.github/workflows/move-major-tag.yml
+    with:
+      plan: ${{ needs.plan.outputs.val }}
+    secrets: inherit

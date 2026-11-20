@@ -1,0 +1,60 @@
+name: Move major tag
+
+# A dist post-announce job (wired in via `post-announce-jobs` in
+# dist-workspace.toml): dist calls it once the GitHub Release is out, so the
+# action consumed as `alephic-ai/skref@v1` never points at a version whose
+# binaries don't exist yet.
+#
+# Moves `vN` to the release commit, but only for the highest stable `vN.x.y`:
+# a backported patch on an older minor, or a prerelease, leaves `vN` alone.
+# `vN` doesn't match the release tag pattern, so moving it publishes nothing.
+on:
+  workflow_call:
+    inputs:
+      plan:
+        required: true
+        type: string
+
+jobs:
+  move:
+    name: Point vN at this release
+    runs-on: ubuntu-latest
+    # release.yml grants contents: write at the workflow level; moving a tag
+    # needs nothing more. Tags have no ruleset, so github.token may update it.
+    permissions:
+      contents: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ fromJson(inputs.plan).announcement_tag }}
+          PRERELEASE: ${{ fromJson(inputs.plan).announcement_is_prerelease }}
+        run: |
+          set -euo pipefail
+          if [ "$PRERELEASE" = "true" ]; then
+            echo "$TAG is a prerelease; leaving the major tag alone."
+            exit 0
+          fi
+          if ! [[ "$TAG" =~ ^v([0-9]+)\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Unexpected release tag '$TAG' (want vX.Y.Z)."
+            exit 1
+          fi
+          major="v${BASH_REMATCH[1]}"
+
+          # Highest stable vN.x.y tag, by version order.
+          latest="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/git/matching-refs/tags/${major}." \
+            --jq '.[].ref | ltrimstr("refs/tags/")' \
+            | grep -E "^${major}\.[0-9]+\.[0-9]+$" | sort -V | tail -n1)"
+          if [ "$latest" != "$TAG" ]; then
+            echo "$TAG is not the newest ${major}.x.y (that is $latest); leaving $major alone."
+            exit 0
+          fi
+
+          sha="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${TAG}" --jq .sha)"
+          if gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${major}" > /dev/null 2>&1; then
+            gh api -X PATCH "repos/${GITHUB_REPOSITORY}/git/refs/tags/${major}" \
+              -f sha="$sha" -F force=true > /dev/null
+          else
+            gh api "repos/${GITHUB_REPOSITORY}/git/refs" \
+              -f ref="refs/tags/${major}" -f sha="$sha" > /dev/null
+          fi
+          echo "::notice::Moved $major to $TAG ($sha)."
